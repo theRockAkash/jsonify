@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            background: #1e1e2e;
+            color: #ffffff;
+        }
+        textarea {
+            width: 80%;
+            height: 150px;
+            margin-bottom: 10px;
+            background: #2e2e3e;
+            color: #ffffff;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .output-container {
+            position: relative;
+            width: 80%;
+            background: #2e2e3e;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        pre {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #d1d1d1;
+        }
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .buttons button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .buttons button:hover, .copy-button:hover {
+            background: #0056b3;
+        }
+        .preview-label {
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            text-align: left;
+            width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <h2>JSON Formatter</h2>
+    <textarea id="jsonInput" placeholder="Enter JSON here..."></textarea>
+    <div class="buttons">
+        <button onclick="formatJSON()">Format JSON</button>
+        <button onclick="clearInput()">Clear</button>
+    </div>
+    <div class="preview-label">PREVIEW</div>
+    <div class="output-container">
+        <button class="copy-button" onclick="copyToClipboard()">Copy</button>
+        <pre id="jsonOutput"></pre>
+    </div>
+    
+    <script>
+        function formatJSON() {
+            let input = document.getElementById("jsonInput").value;
+            let output = document.getElementById("jsonOutput");
+            try {
+                let parsed = JSON.parse(input);
+                let formatted = JSON.stringify(parsed, null, 4);
+                output.textContent = formatted;
+            } catch (error) {
+                try {
+                    let fixedJSON = preprocessJson(input);
+                    let parsed = JSON.parse(fixedJSON);
+                    let formatted = JSON.stringify(parsed, null, 4);
+                    output.textContent = formatted;
+                } catch (error) {
+                    output.textContent =error;
+                }
+            }
+        }
+
+        function clearInput() {
+            document.getElementById("jsonInput").value = "";
+            document.getElementById("jsonOutput").textContent = "";
+        }
+
+        function copyToClipboard() {
+			let output = document.getElementById("jsonOutput").textContent;
+			navigator.clipboard.writeText(output).then(() => {
+				showSnackbar("Copied to clipboard!");
+			}).catch(err => {
+				showSnackbar("Failed to copy: " + err, true);
+			});
+		}
+
+		// Snackbar function
+		function showSnackbar(message, isError = false) {
+			let snackbar = document.createElement("div");
+			snackbar.textContent = message;
+			snackbar.style.position = "fixed";
+			snackbar.style.bottom = "20px";
+			snackbar.style.left = "50%";
+			snackbar.style.transform = "translateX(-50%)";
+			snackbar.style.background = isError ? "#d9534f" : "#4CAF50"; // Red for error, green for success
+			snackbar.style.color = "#fff";
+			snackbar.style.padding = "12px 20px";
+			snackbar.style.borderRadius = "5px";
+			snackbar.style.boxShadow = "0 2px 10px rgba(0,0,0,0.2)";
+			snackbar.style.zIndex = "1000";
+			snackbar.style.transition = "opacity 0.3s ease-in-out";
+			snackbar.style.opacity = "1";
+
+			document.body.appendChild(snackbar);
+
+			setTimeout(() => {
+				snackbar.style.opacity = "0";
+				setTimeout(() => {
+					document.body.removeChild(snackbar);
+				}, 300);
+			}, 2000);
+		}
+
+		
+		
+function preprocessJson(json) {
+    try {
+        // Remove special characters that might break JSON
+        let specialChars = ["║", "╔", "\n"];
+        specialChars.forEach(char => {
+            json = json.split(char).map(part => part.trim()).join('');
+        });
+
+        // Ensure all keys are properly quoted
+        json = json.replace(/([{,])\s*([a-zA-Z0-9_@]+)\s*:/g, '$1"$2":');
+
+        // Ensure all values are valid (numbers, strings, booleans, null)
+        json = json.replace(/:\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=[,}])/g, (match, p1) => {
+            if (!["true", "false", "null"].includes(p1)) {
+                return `: "${p1}"`;
+            }
+            return match;
+        });
+
+        // Replace single quotes with double quotes
+        json = json.replace(/'/g, '"');
+
+        // Remove trailing commas before closing braces or brackets
+        json = json.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+
+        return json;
+    } catch (error) {
+        return json; // If there's an issue, return the original JSON
+    }
+}
+
+
+    </script>
+</body>
+</html>
